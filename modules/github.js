@@ -131,7 +131,24 @@ async function resolveUserId(username) {
   return res.body.id;
 }
 
+function paginatedTool(name, description, required, extra = {}) {
+  return {
+    name,
+    description,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ...extra,
+        limit: { type: 'number', description: 'max results, default 30' },
+        page: { type: 'number', description: 'page number, default 1' }
+      },
+      required
+    }
+  };
+}
+
 const tools = [
+  // Repository contents and git
   {
     name: 'github_read_repo',
     description: 'List files and directories in a GitHub repository path',
@@ -171,6 +188,20 @@ const tools = [
         branch: { type: 'string', description: 'branch to commit to, default main' }
       },
       required: ['repo', 'path', 'content', 'message']
+    }
+  },
+  {
+    name: 'github_delete_file',
+    description: 'Delete a file in a GitHub repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        path: { type: 'string' },
+        message: { type: 'string', description: 'commit message' },
+        branch: { type: 'string', description: 'default main' }
+      },
+      required: ['repo', 'path', 'message']
     }
   },
   {
@@ -226,18 +257,9 @@ const tools = [
       required: ['repo', 'title']
     }
   },
-  {
-    name: 'github_list_org_repos',
-    description: 'List repositories in a GitHub organization',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        org: { type: 'string' },
-        limit: { type: 'number', description: 'max results, default 30' }
-      },
-      required: ['org']
-    }
-  },
+
+  // Org repos
+  paginatedTool('github_list_org_repos', 'List repositories in a GitHub organization', ['org']),
   {
     name: 'github_create_repo',
     description: 'Create a new repository in a GitHub organization',
@@ -254,17 +276,35 @@ const tools = [
     }
   },
   {
-    name: 'github_list_org_members',
-    description: 'List members of a GitHub organization',
+    name: 'github_update_repo',
+    description: 'Update repository settings',
     inputSchema: {
       type: 'object',
       properties: {
-        org: { type: 'string' },
-        limit: { type: 'number', description: 'max results, default 30' }
+        repo: { type: 'string', description: 'owner/name' },
+        description: { type: 'string' },
+        private: { type: 'boolean' },
+        default_branch: { type: 'string' },
+        topics: { type: 'array', items: { type: 'string' } }
       },
-      required: ['org']
+      required: ['repo']
     }
   },
+  {
+    name: 'github_delete_repo',
+    description: 'Delete a GitHub repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' }
+      },
+      required: ['repo']
+    }
+  },
+
+  // Org members and teams
+  paginatedTool('github_list_org_members', 'List members of a GitHub organization', ['org']),
+  paginatedTool('github_list_org_invitations', 'List pending invitations to a GitHub organization', ['org']),
   {
     name: 'github_invite_org_member',
     description: 'Invite a GitHub user to an organization by username',
@@ -273,14 +313,166 @@ const tools = [
       properties: {
         org: { type: 'string' },
         username: { type: 'string' },
-        role: { type: 'string', description: 'admin, direct_member, or billing_manager, default direct_member' }
+        role: { type: 'string', description: 'admin, direct_member, or billing_manager, default direct_member' },
+        team_ids: { type: 'array', items: { type: 'number' }, description: 'optional team IDs to add them to' }
       },
       required: ['org', 'username']
+    }
+  },
+  {
+    name: 'github_remove_org_member',
+    description: 'Remove a member from a GitHub organization',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org: { type: 'string' },
+        username: { type: 'string' }
+      },
+      required: ['org', 'username']
+    }
+  },
+  paginatedTool('github_list_teams', 'List teams in a GitHub organization', ['org']),
+  {
+    name: 'github_create_team',
+    description: 'Create a team in a GitHub organization',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org: { type: 'string' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+        privacy: { type: 'string', description: 'secret or closed, default closed' },
+        maintainers: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['org', 'name']
+    }
+  },
+  {
+    name: 'github_add_team_member',
+    description: 'Add a member to a team by username',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org: { type: 'string' },
+        team_slug: { type: 'string' },
+        username: { type: 'string' },
+        role: { type: 'string', description: 'member or maintainer, default member' }
+      },
+      required: ['org', 'team_slug', 'username']
+    }
+  },
+
+  // Repo secrets and variables
+  {
+    name: 'github_list_repo_secrets',
+    description: 'List secrets in a repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' }
+      },
+      required: ['repo']
+    }
+  },
+  {
+    name: 'github_list_repo_variables',
+    description: 'List variables in a repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' }
+      },
+      required: ['repo']
+    }
+  },
+  {
+    name: 'github_create_repo_variable',
+    description: 'Create or update a repository variable',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        name: { type: 'string' },
+        value: { type: 'string' }
+      },
+      required: ['repo', 'name', 'value']
+    }
+  },
+
+  // Actions
+  {
+    name: 'github_list_workflow_runs',
+    description: 'List workflow runs for a repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        workflow_id: { type: 'string', description: 'optional workflow filename or ID' },
+        branch: { type: 'string' },
+        limit: { type: 'number', description: 'max results, default 10' }
+      },
+      required: ['repo']
+    }
+  },
+
+  // Security
+  {
+    name: 'github_list_dependabot_alerts',
+    description: 'List Dependabot alerts for a repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        state: { type: 'string', description: 'open/dismissed/fixed, default open' },
+        limit: { type: 'number', description: 'max results, default 10' }
+      },
+      required: ['repo']
+    }
+  },
+  {
+    name: 'github_list_secret_scanning_alerts',
+    description: 'List secret scanning alerts for a repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        state: { type: 'string', description: 'open/resolved, default open' },
+        limit: { type: 'number', description: 'max results, default 10' }
+      },
+      required: ['repo']
+    }
+  },
+
+  // Webhooks
+  {
+    name: 'github_list_repo_webhooks',
+    description: 'List webhooks in a repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' }
+      },
+      required: ['repo']
+    }
+  },
+  {
+    name: 'github_create_repo_webhook',
+    description: 'Create a webhook in a repository',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        config: { type: 'object', description: '{url, content_type, secret, insecure_ssl}' },
+        events: { type: 'array', items: { type: 'string' }, description: 'default [push]' },
+        active: { type: 'boolean', description: 'default true' }
+      },
+      required: ['repo', 'config']
     }
   }
 ];
 
 const handlers = {
+  // Contents
   async github_read_repo(args) {
     const { owner, name } = parseRepo(args.repo);
     const path = args.path || '';
@@ -310,6 +502,19 @@ const handlers = {
     const res = await githubRequest(`/repos/${owner}/${name}/contents/${encodeURIComponent(args.path)}`, 'PUT', body);
     if (res.status !== 200 && res.status !== 201) throw new Error(JSON.stringify(res.body));
     return { ok: true, commit: res.body.commit?.sha, content: res.body.content?.sha };
+  },
+  async github_delete_file(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const branch = args.branch || 'main';
+    const sha = await getFileSha(owner, name, args.path, branch);
+    if (!sha) throw new Error('File not found');
+    const res = await githubRequest(`/repos/${owner}/${name}/contents/${encodeURIComponent(args.path)}`, 'DELETE', {
+      message: args.message,
+      sha,
+      branch
+    });
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return { ok: true };
   },
   async github_create_branch(args) {
     const { owner, name } = parseRepo(args.repo);
@@ -352,9 +557,12 @@ const handlers = {
     if (res.status !== 201) throw new Error(JSON.stringify(res.body));
     return { ok: true, number: res.body.number, url: res.body.html_url };
   },
+
+  // Org repos
   async github_list_org_repos(args) {
     const limit = args.limit || 30;
-    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/repos?per_page=${limit}`);
+    const page = args.page || 1;
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/repos?per_page=${limit}&page=${page}`);
     if (res.status !== 200) throw new Error(JSON.stringify(res.body));
     return res.body.map(r => ({ name: r.name, full_name: r.full_name, private: r.private, url: r.html_url }));
   },
@@ -369,21 +577,156 @@ const handlers = {
     if (res.status !== 201) throw new Error(JSON.stringify(res.body));
     return { ok: true, name: res.body.name, url: res.body.html_url, full_name: res.body.full_name };
   },
+  async github_update_repo(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const body = {};
+    if (args.description !== undefined) body.description = args.description;
+    if (args.private !== undefined) body.private = args.private;
+    if (args.default_branch !== undefined) body.default_branch = args.default_branch;
+    if (args.topics !== undefined) body.topics = args.topics;
+    const res = await githubRequest(`/repos/${owner}/${name}`, 'PATCH', body);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return { ok: true, name: res.body.name, url: res.body.html_url };
+  },
+  async github_delete_repo(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const res = await githubRequest(`/repos/${owner}/${name}`, 'DELETE');
+    if (res.status !== 204) throw new Error(JSON.stringify(res.body));
+    return { ok: true };
+  },
+
+  // Org members and teams
   async github_list_org_members(args) {
     const limit = args.limit || 30;
-    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/members?per_page=${limit}`);
+    const page = args.page || 1;
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/members?per_page=${limit}&page=${page}`);
     if (res.status !== 200) throw new Error(JSON.stringify(res.body));
     return res.body.map(m => ({ username: m.login, id: m.id, url: m.html_url }));
+  },
+  async github_list_org_invitations(args) {
+    const limit = args.limit || 30;
+    const page = args.page || 1;
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/invitations?per_page=${limit}&page=${page}`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.map(i => ({ id: i.id, login: i.login, email: i.email, role: i.role, created_at: i.created_at }));
   },
   async github_invite_org_member(args) {
     const userId = await resolveUserId(args.username);
     const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/invitations`, 'POST', {
       invitee_id: userId,
       role: args.role || 'direct_member',
-      team_ids: []
+      team_ids: args.team_ids || []
     });
     if (res.status !== 201) throw new Error(JSON.stringify(res.body));
     return { ok: true, id: res.body.id, login: res.body.login, email: res.body.email };
+  },
+  async github_remove_org_member(args) {
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/members/${encodeURIComponent(args.username)}`, 'DELETE');
+    if (res.status !== 204) throw new Error(JSON.stringify(res.body));
+    return { ok: true };
+  },
+  async github_list_teams(args) {
+    const limit = args.limit || 30;
+    const page = args.page || 1;
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/teams?per_page=${limit}&page=${page}`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.map(t => ({ name: t.name, slug: t.slug, description: t.description, privacy: t.privacy, url: t.html_url }));
+  },
+  async github_create_team(args) {
+    const body = {
+      name: args.name,
+      description: args.description || '',
+      privacy: args.privacy || 'closed',
+      maintainers: args.maintainers || []
+    };
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/teams`, 'POST', body);
+    if (res.status !== 201) throw new Error(JSON.stringify(res.body));
+    return { ok: true, name: res.body.name, slug: res.body.slug, url: res.body.html_url };
+  },
+  async github_add_team_member(args) {
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/teams/${encodeURIComponent(args.team_slug)}/memberships/${encodeURIComponent(args.username)}`, 'PUT', {
+      role: args.role || 'member'
+    });
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return { ok: true, state: res.body.state, role: res.body.role };
+  },
+
+  // Secrets and variables
+  async github_list_repo_secrets(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const res = await githubRequest(`/repos/${owner}/${name}/actions/secrets`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.secrets.map(s => ({ name: s.name, created_at: s.created_at, updated_at: s.updated_at }));
+  },
+  async github_list_repo_variables(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const res = await githubRequest(`/repos/${owner}/${name}/actions/variables`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.variables.map(v => ({ name: v.name, value: v.value, created_at: v.created_at, updated_at: v.updated_at }));
+  },
+  async github_create_repo_variable(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const res = await githubRequest(`/repos/${owner}/${name}/actions/variables`, 'POST', {
+      name: args.name,
+      value: args.value
+    });
+    if (res.status !== 201) {
+      const upd = await githubRequest(`/repos/${owner}/${name}/actions/variables/${encodeURIComponent(args.name)}`, 'PATCH', {
+        name: args.name,
+        value: args.value
+      });
+      if (upd.status !== 204) throw new Error(JSON.stringify(upd.body));
+    }
+    return { ok: true };
+  },
+
+  // Actions
+  async github_list_workflow_runs(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const limit = args.limit || 10;
+    let path = `/repos/${owner}/${name}/actions/runs?per_page=${limit}`;
+    if (args.workflow_id) path = `/repos/${owner}/${name}/actions/workflows/${encodeURIComponent(args.workflow_id)}/runs?per_page=${limit}`;
+    if (args.branch) path += `&branch=${encodeURIComponent(args.branch)}`;
+    const res = await githubRequest(path);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.workflow_runs.map(r => ({ id: r.id, name: r.name, status: r.status, conclusion: r.conclusion, branch: r.head_branch, url: r.html_url }));
+  },
+
+  // Security
+  async github_list_dependabot_alerts(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const state = args.state || 'open';
+    const limit = args.limit || 10;
+    const res = await githubRequest(`/repos/${owner}/${name}/dependabot/alerts?state=${state}&per_page=${limit}`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.map(a => ({ number: a.number, state: a.state, severity: a.security_advisory.severity, summary: a.security_advisory.summary, url: a.html_url }));
+  },
+  async github_list_secret_scanning_alerts(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const state = args.state || 'open';
+    const limit = args.limit || 10;
+    const res = await githubRequest(`/repos/${owner}/${name}/secret-scanning/alerts?state=${state}&per_page=${limit}`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.map(a => ({ number: a.number, state: a.state, secret_type: a.secret_type, resolution: a.resolution, url: a.html_url }));
+  },
+
+  // Webhooks
+  async github_list_repo_webhooks(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const res = await githubRequest(`/repos/${owner}/${name}/hooks`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.map(h => ({ id: h.id, url: h.config.url, events: h.events, active: h.active }));
+  },
+  async github_create_repo_webhook(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const body = {
+      config: args.config,
+      events: args.events || ['push'],
+      active: args.active !== false
+    };
+    const res = await githubRequest(`/repos/${owner}/${name}/hooks`, 'POST', body);
+    if (res.status !== 201) throw new Error(JSON.stringify(res.body));
+    return { ok: true, id: res.body.id, url: res.body.config.url };
   }
 };
 
