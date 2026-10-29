@@ -35,6 +35,10 @@ function handleRequest(req) {
       serverInfo
     };
   }
+  if (req.method === 'notifications/initialized') {
+    // Client lifecycle notification; no response needed
+    return null;
+  }
   if (req.method === 'tools/list') {
     return { tools };
   }
@@ -61,7 +65,9 @@ process.stdin.on('data', async (chunk) => {
     }
     try {
       const result = await handleRequest(req);
-      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: req.id, result }) + '\n');
+      if (result !== null) {
+        process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: req.id, result }) + '\n');
+      }
     } catch (err) {
       process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: req.id, error: { code: -32603, message: err.message } }) + '\n');
     }
