@@ -4,26 +4,24 @@
 
 set -euo pipefail
 
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
+RED='\\033[0;31m'
+YELLOW=''\033[1;33m'
 NC='\033[0m' # No Color
 
 errors=0
 
 # Patterns that should never leave the repo
 forbidden_patterns=(
-  # Absolute Windows paths that look like Mrrowr-murrr's local machine
-  'F:\\\\PDA-SEASIDE'
-  'F:/PDA-SEASIDE'
-  'C:\\\\Users\\\\'
-  'C:/Users/'
+  # Absolute Windows paths
+  '[A-Z]:<\\\\\\\\[^\\]'
+  '[A-Z]:/[^\\']'
   # Generic private-key / API-key material
   'BEGIN RSA PRIVATE KEY'
   'BEGIN OPENSSH PRIVATE KEY'
   'BEGIN EC PRIVATE KEY'
   'BEGIN PRIVATE KEY'
   'sk-[a-zA-Z0-9]{20,}'   # OpenAI-style secret key
-  'tavily[a-zA-Z0-9_-]{20,}' # Tavily key pattern
+  'tavily[a-zA-Z0-9__-]{20,}' # Tavily key pattern
   'github[_-]?token[:=]\s*[a-zA-Z0-9_-]{20,}'
   'api[_-]?key[:=]\s*[a-zA-Z0-9_-]{20,}'
   'private[_-]?key[:=]\s*[a-zA-Z0-9_-]{20,}'
