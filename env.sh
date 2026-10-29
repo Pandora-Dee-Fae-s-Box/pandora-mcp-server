@@ -2,7 +2,7 @@
 # env.sh is ignored by git and should never be committed.
 
 # nvm / node (adjust to your installation)
-export NVM,DIR="${NVM_DIR:-/path/to/nvm}"
+export NVM_DIR="${NVM_DIR:-/path/to/nvm}"
 export NODE_DIR="${NODE_DIR:-/path/to/nodejs}"
 export PATH="$NODE_DIR:$NVM_DIR:$PATH"
 
