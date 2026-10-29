@@ -3,8 +3,8 @@
 ## Done
 
 - [x] Modular stdio MCP server skeleton
-- [x] GitHub module: read repo, read file, write file, create branch, create PR, list/create issues
-- [x] GitHub App authentication with installation token caching
+- [x] GitHub module: repo/file/branch/PR/issue tools + GitHub App auth
+- [x] Org-level GitHub tools: list/create repos, list/invite members
 - [x] Fae-library module: read/write text and binary files, list, create directory
 - [x] Web module: Tavily search and URL extraction
 - [x] Cross-platform launchers (`run.sh`, `run.bat`, `env.sh`)
@@ -13,8 +13,9 @@
 
 ## Next
 
-- [ ] Restart pandora-mcp supergateway to load the new `web` module
+- [ ] Restart pandora-mcp supergateway to load the new `web` and updated `github` modules
 - [ ] Test `web_search` and `web_extract` via MCP tools
+- [ ] Test org-level tools once GitHub App permissions are updated
 - [ ] Add Chromium/Playwright browser module for JS sites, logins, downloads, YouTube transcripts
 - [ ] Add Vector/Discord attachment download and filing module
 - [ ] Add a `library` module with indexing and search across `Fae-library`
