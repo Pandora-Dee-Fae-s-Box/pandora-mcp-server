@@ -7,6 +7,10 @@ export GITHUB_APP_ID="${GITHUB_APP_ID:-5525018}"
 export GITHUB_INSTALLATION_ID="${GITHUB_INSTALLATION_ID:-176513629}"
 export GITHUB_PRIVATE_KEY_PATH="${GITHUB_PRIVATE_KEY_PATH:-/path/to/Fae-library/pandora-mcp/secrets/github_app_private_key.pem}"
 
+# Optional bridges for native attachment download from Vector/Discord
+export VECTOR_BRIDGE_URL="${VECTOR_BRIDGE_URL:-}"
+export DISCORD_BRIDGE_URL="${DISCORD_BRIDGE_URL:-}"
+
 # Fallback to PAT if no app key is present
 if [ -z "$GITHUB_TOKEN" ] && [ -z "$GITHUB_APP_ID" ] && [ -f "$HOME/.pandora-secrets/github_token" ]; then
   export GITHUB_TOKEN=$(cat "$HOME/.pandora-secrets/github_token")
