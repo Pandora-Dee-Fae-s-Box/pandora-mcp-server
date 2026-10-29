@@ -9,7 +9,7 @@ This server exposes tools that let an MCP client act on behalf of Pandora:
 - **GitHub bridge** — read/write files, create branches and PRs, list/create issues in `Pandora-Dee-Fae-s-Box` repos.
 - **Fae-library bridge** — read/write text and binary files, list directories, and create directories inside a configurable local vault folder.
 - **Web bridge** — search and extract web content via Tavily.
-- **Attachment bridge** — download files from public URLs; native Vector/Discord downloads when a bridge URL is configured.
+- **Attachment bridge** — download from public URLs; native Vector/Discord downloads via the Jade bridges.
 
 Authentication uses a GitHub App installed on the `Pandora-Dee-Fae-s-Box` org, plus a local private key. A personal access token can be used as a fallback.
 
@@ -66,11 +66,12 @@ Drop a `.js` file into `modules/` that exports `{ tools: [...], handlers: {...} 
 To enable native Vector/Discord attachment downloads, set:
 
 ```bash
-export VECTOR_BRIDGE_URL="http://localhost:8003/vector/download"
-export DISCORD_BRIDGE_URL="http://localhost:8004/discord/download"
+export VECTOR_BRIDGE_URL="http://localhost:8787/mcp"
+export DISCORD_BRIDGE_URL="http://localhost:8788/mcp"
+export BRIDGE_TOKEN="your-bridge-token-here"
 ```
 
-The bridge must accept a POST with `{ message_id, index }` and return `{ data: base64, type: mime_type }`.
+These point at the Jade Vector bridge and Jade Discord bridge MCP endpoints. The bridge must expose a `download_attachment` tool that returns `{ base64, content_type, name }`.
 
 ## Security
 
