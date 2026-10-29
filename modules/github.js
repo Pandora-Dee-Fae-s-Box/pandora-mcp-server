@@ -125,6 +125,12 @@ async function getFileSha(owner, repo, path, ref = 'main') {
   }
 }
 
+async function resolveUserId(username) {
+  const res = await githubRequest(`/users/${encodeURIComponent(username)}`);
+  if (res.status !== 200) throw new Error(`Could not resolve user ${username}: ${JSON.stringify(res.body)}`);
+  return res.body.id;
+}
+
 const tools = [
   {
     name: 'github_read_repo',
@@ -219,6 +225,58 @@ const tools = [
       },
       required: ['repo', 'title']
     }
+  },
+  {
+    name: 'github_list_org_repos',
+    description: 'List repositories in a GitHub organization',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org: { type: 'string' },
+        limit: { type: 'number', description: 'max results, default 30' }
+      },
+      required: ['org']
+    }
+  },
+  {
+    name: 'github_create_repo',
+    description: 'Create a new repository in a GitHub organization',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org: { type: 'string' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+        private: { type: 'boolean', description: 'default true' },
+        readme: { type: 'boolean', description: 'initialize with README, default false' }
+      },
+      required: ['org', 'name']
+    }
+  },
+  {
+    name: 'github_list_org_members',
+    description: 'List members of a GitHub organization',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org: { type: 'string' },
+        limit: { type: 'number', description: 'max results, default 30' }
+      },
+      required: ['org']
+    }
+  },
+  {
+    name: 'github_invite_org_member',
+    description: 'Invite a GitHub user to an organization by username',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org: { type: 'string' },
+        username: { type: 'string' },
+        role: { type: 'string', description: 'admin, direct_member, or billing_manager, default direct_member' }
+      },
+      required: ['org', 'username']
+    }
   }
 ];
 
@@ -293,6 +351,39 @@ const handlers = {
     });
     if (res.status !== 201) throw new Error(JSON.stringify(res.body));
     return { ok: true, number: res.body.number, url: res.body.html_url };
+  },
+  async github_list_org_repos(args) {
+    const limit = args.limit || 30;
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/repos?per_page=${limit}`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.map(r => ({ name: r.name, full_name: r.full_name, private: r.private, url: r.html_url }));
+  },
+  async github_create_repo(args) {
+    const body = {
+      name: args.name,
+      description: args.description || '',
+      private: args.private !== false,
+      auto_init: args.readme === true
+    };
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/repos`, 'POST', body);
+    if (res.status !== 201) throw new Error(JSON.stringify(res.body));
+    return { ok: true, name: res.body.name, url: res.body.html_url, full_name: res.body.full_name };
+  },
+  async github_list_org_members(args) {
+    const limit = args.limit || 30;
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/members?per_page=${limit}`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.map(m => ({ username: m.login, id: m.id, url: m.html_url }));
+  },
+  async github_invite_org_member(args) {
+    const userId = await resolveUserId(args.username);
+    const res = await githubRequest(`/orgs/${encodeURIComponent(args.org)}/invitations`, 'POST', {
+      invitee_id: userId,
+      role: args.role || 'direct_member',
+      team_ids: []
+    });
+    if (res.status !== 201) throw new Error(JSON.stringify(res.body));
+    return { ok: true, id: res.body.id, login: res.body.login, email: res.body.email };
   }
 };
 
