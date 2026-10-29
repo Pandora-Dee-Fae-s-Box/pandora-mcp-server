@@ -10,6 +10,7 @@ export GITHUB_PRIVATE_KEY_PATH="${GITHUB_PRIVATE_KEY_PATH:-/path/to/Fae-library/
 # Optional bridges for native attachment download from Vector/Discord
 export VECTOR_BRIDGE_URL="${VECTOR_BRIDGE_URL:-}"
 export DISCORD_BRIDGE_URL="${DISCORD_BRIDGE_URL:-}"
+export BRIDGE_TOKEN="${BRIDGE_TOKEN:-${JADE_BRIDGE_TOKEN:-}}"
 
 # Fallback to PAT if no app key is present
 if [ -z "$GITHUB_TOKEN" ] && [ -z "$GITHUB_APP_ID" ] && [ -f "$HOME/.pandora-secrets/github_token" ]; then
