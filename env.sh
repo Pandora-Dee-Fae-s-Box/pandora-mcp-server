@@ -1,10 +1,8 @@
-# Source this file in a fresh Git Bash terminal:
-#   source env.sh
-#
-# Then customize the exports below to match your local paths before running run.sh.
+# Copy this file to env.sh and fill in your real values.
+# env.sh is ignored by git and should never be committed.
 
 # nvm / node (adjust to your installation)
-export NVM_DIR="${NVM_DIR:-/path/to/nvm}"
+export NVM,DIR="${NVM_DIR:-/path/to/nvm}"
 export NODE_DIR="${NODE_DIR:-/path/to/nodejs}"
 export PATH="$NODE_DIR:$NVM_DIR:$PATH"
 
@@ -13,15 +11,14 @@ export PATH="/c/Program Files/Git/usr/bin:$PATH"
 export PATH="/c/Program Files/Git/mingw64/bin:$PATH"
 
 # GitHub App auth for Pandora MCP
-export GITHUB_APP_ID="${GITHUB_APP_ID:-5525018}"
-export GITHUB_INSTALLATION_ID="${GITHUB_INSTALLATION_ID:-176513629}"
+export GITHUB_APP_ID="${GITHUB_APP_ID:-YOUR_GITHUB_APP_ID}"
+export GITHUB_INSTALLATION_ID="${GITHUB_INSTALLATION_ID:-YOUR_GITHUB_INSTALLATION_ID}"
 export GITHUB_PRIVATE_KEY_PATH="${GITHUB_PRIVATE_KEY_PATH:-/path/to/Fae-library/pandora-mcp/secrets/github_app_private_key.pem}"
 
 # Fae-library storage root (kept outside the repo so secrets stay safe)
 export FAE_STORAGE_BASE="${FAE_STORAGE_BASE:-/path/to/Fae-library}"
 
 # Optional bridges for native attachment download from Vector/Discord
-# Set these to the MCP endpoint of the Jade Vector / Jade Discord bridge.
 # export VECTOR_BRIDGE_URL="http://localhost:8787/mcp"
 # export DISCORD_BRIDGE_URL="http://localhost:8788/mcp"
 # export BRIDGE_TOKEN="your-bridge-token-here"
