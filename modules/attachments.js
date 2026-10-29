@@ -6,6 +6,7 @@ const path = require('path');
 const FAE_BASE = process.env.FAE_STORAGE_BASE || './Fae-library';
 const VECTOR_BRIDGE_URL = process.env.VECTOR_BRIDGE_URL || null;
 const DISCORD_BRIDGE_URL = process.env.DISCORD_BRIDGE_URL || null;
+const BRIDGE_TOKEN = process.env.BRIDGE_TOKEN || process.env.JADE_BRIDGE_TOKEN || null;
 
 function safePath(p) {
   const normalized = path.normalize(p || '.').replace(/^(\.\.(\/|\\|$))+/, '');
@@ -39,15 +40,24 @@ function fetchUrl(url) {
   });
 }
 
-async function bridgeDownload(bridgeUrl, message_id, index) {
+function mcpBridgeCall(bridgeUrl, toolName, arguments) {
   return new Promise((resolve, reject) => {
+    if (!BRIDGE_TOKEN) {
+      return reject(new Error('BRIDGE_TOKEN not configured. Set BRIDGE_TOKEN or JADE_BRIDGE_TOKEN.'));
+    }
     const url = new URL(bridgeUrl);
     const client = url.protocol === 'https:' ? https : http;
-    const body = JSON.stringify({ message_id, index: index || 0 });
+    const body = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'dl1',
+      method: 'tools/call',
+      params: { name: toolName, arguments: arguments || {} }
+    });
     const req = client.request(url, {
       method: 'POST',
       headers: {
         'User-Agent': 'pandora-mcp-server',
+        'Authorization': `Bearer ${BRIDGE_TOKEN}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
@@ -57,18 +67,24 @@ async function bridgeDownload(bridgeUrl, message_id, index) {
       res.on('end', () => {
         const data = Buffer.concat(chunks);
         if (res.statusCode !== 200) {
-          try {
-            const parsed = JSON.parse(data.toString('utf8'));
-            return reject(new Error(parsed.message || `Bridge returned ${res.statusCode}`));
-          } catch (e) {
-            return reject(new Error(`Bridge returned ${res.statusCode}: ${data.toString('utf8')}`));
-          }
+          return reject(new Error(`Bridge returned ${res.statusCode}: ${data.toString('utf8')}`));
         }
         try {
           const parsed = JSON.parse(data.toString('utf8'));
-          resolve(parsed);
+          const result = parsed.result || parsed;
+          if (result.isError) {
+            const text = (result.content || []).map(c => c.text).join('\n');
+            return reject(new Error(text || 'Bridge tool error'));
+          }
+          const text = (result.content || []).map(c => c.text).join('\n');
+          try {
+            const inner = JSON.parse(text);
+            resolve(inner);
+          } catch (e) {
+            resolve({ data: text, type: 'application/octet-stream' });
+          }
         } catch (e) {
-          resolve({ data: data.toString('base64'), type: 'application/octet-stream' });
+          reject(new Error(`Could not parse bridge response: ${data.toString('utf8')}`));
         }
       });
     });
@@ -100,7 +116,7 @@ const tools = [
   },
   {
     name: 'vector_download_attachment',
-    description: 'Download an attachment from a Vector message via the local bridge (requires VECTOR_BRIDGE_URL)',
+    description: 'Download an attachment from a Vector message via the Jade Vector bridge (requires VECTOR_BRIDGE_URL and BRIDGE_TOKEN)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -113,7 +129,7 @@ const tools = [
   },
   {
     name: 'discord_download_attachment',
-    description: 'Download an attachment from a Discord message via the local bridge (requires DISCORD_BRIDGE_URL)',
+    description: 'Download an attachment from a Discord message via the Jade Discord bridge (requires DISCORD_BRIDGE_URL and BRIDGE_TOKEN)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -136,17 +152,25 @@ const handlers = {
     if (!VECTOR_BRIDGE_URL) {
       throw new Error('VECTOR_BRIDGE_URL not configured. Set it in env.sh/run.bat to enable native Vector attachment download.');
     }
-    const { data, type } = await bridgeDownload(VECTOR_BRIDGE_URL, args.message_id, args.index);
-    const result = saveAttachment(Buffer.from(data, 'base64'), args.save_to, type);
-    return { ok: true, ...result };
+    const inner = await mcpBridgeCall(VECTOR_BRIDGE_URL, 'download_attachment', {
+      message_id: args.message_id,
+      index: args.index || 0
+    });
+    const data = Buffer.from(inner.base64 || inner.data, 'base64');
+    const result = saveAttachment(data, args.save_to, inner.content_type || inner.type || 'application/octet-stream');
+    return { ok: true, name: inner.name || inner.filename, ...result };
   },
   async discord_download_attachment(args) {
     if (!DISCORD_BRIDGE_URL) {
       throw new Error('DISCORD_BRIDGE_URL not configured. Set it in env.sh/run.bat to enable native Discord attachment download.');
     }
-    const { data, type } = await bridgeDownload(DISCORD_BRIDGE_URL, args.message_id, args.index);
-    const result = saveAttachment(Buffer.from(data, 'base64'), args.save_to, type);
-    return { ok: true, ...result };
+    const inner = await mcpBridgeCall(DISCORD_BRIDGE_URL, 'download_attachment', {
+      message_id: args.message_id,
+      index: args.index || 0
+    });
+    const data = Buffer.from(inner.base64 || inner.data, 'base64');
+    const result = saveAttachment(data, args.save_to, inner.content_type || inner.type || 'application/octet-stream');
+    return { ok: true, name: inner.name || inner.filename, ...result };
   }
 };
 
