@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const BASE = process.env.FAE_STORAGE_BASE || '/f/PDA-SEASIDE/Fae-library';
+// Configurable base path so the repo stays generic.
+// On Windows/Git Bash, set FAE_STORAGE_BASE=F:\PDA-SEASIDE\Fae-library
+// On macOS/Linux, set FAE_STORAGE_BASE=/home/user/Fae-library
+const BASE = process.env.FAE_STORAGE_BASE || './Fae-library';
 
 function safePath(p) {
   const normalized = path.normalize(p || '.').replace(/^(\.\.(\/|\\|$))+/, '');
