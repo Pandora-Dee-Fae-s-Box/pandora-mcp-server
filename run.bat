@@ -11,6 +11,7 @@ if not defined GITHUB_PRIVATE_KEY_PATH set "GITHUB_PRIVATE_KEY_PATH=F:\path\to\F
 rem Optional bridges for native attachment download from Vector/Discord
 if not defined VECTOR_BRIDGE_URL set "VECTOR_BRIDGE_URL="
 if not defined DISCORD_BRIDGE_URL set "DISCORD_BRIDGE_URL="
+if not defined BRIDGE_TOKEN set "BRIDGE_TOKEN="
 
 if not defined GITHUB_TOKEN if not defined GITHUB_APP_ID if exist "%USERPROFILE%\.pandora-secrets\github_token" (
   set /p GITHUB_TOKEN=<"%USERPROFILE%\.pandora-secrets\github_token"
