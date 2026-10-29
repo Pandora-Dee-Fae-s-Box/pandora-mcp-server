@@ -12,9 +12,13 @@
 
 ## Next
 
-- [ ] Add YouTube transcript / metadata ingestion module
+- [ ] **Browser module** — headless browser tools with no API keys required
+  - `browser_navigate`, `browser_read_page`
+  - `browser_click`, `browser_type`, `browser_submit`
+  - `browser_download` to Fae-library
+  - `browser_search` via search-engine scraping
+  - `browser_youtube_transcript` and metadata extraction
 - [ ] Add Vector/Discord attachment download and filing module
-- [ ] Add a generic web-fetch module with sensible caching
 - [ ] Add a `library` module with indexing and search across `Fae-library`
 - [ ] Add error handling and retries for GitHub API calls
 - [ ] Add tests and CI
