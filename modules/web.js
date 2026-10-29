@@ -1,19 +1,23 @@
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
+
+const FAE_BASE = process.env.FAE_STORAGE_BASE || './Fae-library';
 
 function loadKey(name) {
+  const keyringPath = path.join(FAE_BASE, 'secrets', 'API-keys.md');
   const candidates = [
-    `/f/PDA-SEASIDE/Fae-library/secrets/${name}`,
-    process.env.HOME ? `${process.env.HOME}/.pandora-secrets/${name}` : null,
-    process.env.USERPROFILE ? `${process.env.USERPROFILE}/.pandora-secrets/${name}` : null,
-    `./secrets/${name}`
+    keyringPath,
+    process.env.HOME ? path.join(process.env.HOME, '.pandora-secrets', name) : null,
+    process.env.USERPROFILE ? path.join(process.env.USERPROFILE, '.pandora-secrets', name) : null,
+    path.join('./secrets', name)
   ].filter(Boolean);
+
   for (const p of candidates) {
     try {
       if (fs.existsSync(p)) {
         const content = fs.readFileSync(p, 'utf8');
         // Try to extract a key from a label like "Tavily:" or "TAVILY_API_KEY="
-        // Match key on same line after colon/equals, or on next line
         const sameLine = content.match(new RegExp(`${name.replace(/[-_]/g, '[-_]')}[:=]\\s*([A-Za-z0-9_\\-]+)`, 'i'));
         if (sameLine) return sameLine[1];
         const genericLine = content.match(/[:=]\s*([A-Za-z0-9_\-]{20,})/);
@@ -26,10 +30,10 @@ function loadKey(name) {
   return process.env[name.toUpperCase().replace(/-/g, '_')] || null;
 }
 
-const TAVILY_KEY = loadKey('tavily_api_key') || loadKey('API-keys.md');
+const TAVILY_KEY = loadKey('tavily_api_key');
 
 function httpRequest(hostname, path, method = 'GET', body = null, headers = {}) {
-  return new Promise((resolve, reject) =>> {
+  return new Promise((resolve, reject) => {
     const opts = {
       hostname,
       port: 443,
@@ -46,7 +50,7 @@ function httpRequest(hostname, path, method = 'GET', body = null, headers = {}) 
       opts.headers['Content-Type'] = 'application/json';
       opts.headers['Content-Length'] = Buffer.byteLength(bodyStr);
     }
-    const req = https.request(opts, (res) =>> {
+    const req = https.request(opts, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
