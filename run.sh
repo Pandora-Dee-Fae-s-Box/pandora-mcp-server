@@ -1,1 +1,1 @@
-minimal test content
+hello world
