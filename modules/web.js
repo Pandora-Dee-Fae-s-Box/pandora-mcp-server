@@ -11,10 +11,15 @@ function loadKey(name) {
   for (const p of candidates) {
     try {
       if (fs.existsSync(p)) {
-        const content = fs.readFileSync(p, 'utf8').trim();
-        // If the file contains a label like "Tavily: tvly-...", extract just the key
-        const match = content.match(/[:=]\s*([A-Za-z0-9_\-]+)/);
-        return match ? match[1] : content;
+        const content = fs.readFileSync(p, 'utf8');
+        // Try to extract a key from a label like "Tavily:" or "TAVILY_API_KEY="
+        // Match key on same line after colon/equals, or on next line
+        const sameLine = content.match(new RegExp(`${name.replace(/[-_]/g, '[-_]')}[:=]\\s*([A-Za-z0-9_\\-]+)`, 'i'));
+        if (sameLine) return sameLine[1];
+        const genericLine = content.match(/[:=]\s*([A-Za-z0-9_\-]{20,})/);
+        if (genericLine) return genericLine[1];
+        const trimmed = content.trim();
+        if (/^[A-Za-z0-9_\-]+$/.test(trimmed)) return trimmed;
       }
     } catch (e) {}
   }
@@ -24,7 +29,7 @@ function loadKey(name) {
 const TAVILY_KEY = loadKey('tavily_api_key') || loadKey('API-keys.md');
 
 function httpRequest(hostname, path, method = 'GET', body = null, headers = {}) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) =>> {
     const opts = {
       hostname,
       port: 443,
@@ -41,7 +46,7 @@ function httpRequest(hostname, path, method = 'GET', body = null, headers = {}) 
       opts.headers['Content-Type'] = 'application/json';
       opts.headers['Content-Length'] = Buffer.byteLength(bodyStr);
     }
-    const req = https.request(opts, (res) => {
+    const req = https.request(opts, (res) =>> {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
