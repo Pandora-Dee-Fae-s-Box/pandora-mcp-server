@@ -2,36 +2,31 @@
 
 ## Done
 
-- [x] Modular stdio MCP server skeleton
-- [x] GitHub module: repo/file/branch/PR/issue tools + GitHub App auth
-- [x] Org-level GitHub tools: list/create repos, list/invite members
-- [x] Fae-library module: read/write text and binary files, list, create directory
-- [x] Web module: Tavily search and URL extraction
-- [x] Cross-platform launchers (`run.sh`, `run.bat`, `env.sh`)
-- [x] `.gitignore` to protect secrets
-- [x] Verified write access to `Pandora-Dee-Fae-s-Box/pandora-mcp-server`
-- [x] Pre-commit hook to block secrets and local paths
-- [x] Attachment download module: public URLs + bridge stubs for Vector/Discord
+- Modular stdio MCP server skeleton
+- GitHub module: repo/file/branch/PR/issue tools + GitHub App auth
+- Org-level GitHub tools: list/create repos, list/invite members, teams
+- Fae-library module: read/write text and binary files, list, create directory
+- Web module: Tavily search and URL extraction
+- Cross-platform launchers (run.sh, run.bat, env.sh)
+- .gitignore to protect secrets
+- Verified write access to the primary repo
 
 ## Next
 
-- [ ] Restart pandora-mcp supergateway to load the new `attachments` module
-- [ ] Test `download_url` via MCP tools
-- [ ] Build or wire the Vector bridge endpoint (`VECTOR_BRIDGE_URL`) for native attachment download
-- [ ] Build or wire the Discord bridge endpoint (`DISCORD_BRIDGE_URL`) for native attachment download
-- [ ] Add Chromium/Playwright browser module for JS sites, logins, downloads, YouTube transcripts
-- [ ] Add a `library` module with indexing and search across `Fae-library`
-- [ ] Add error handling and retries for GitHub API calls
-- [ ] Add tests and CI
-- [ ] Package and publish to npm
-- [ ] Retire the standalone `fae-storage-server.cjs` bridge
+- Test all org-level tools after restart
+- Push final module versions to the repo once verified
+- Add Chromium/Playwright browser module for JS sites, logins, downloads, YouTube transcripts
+- Add Vector/Discord attachment download and filing module
+- Add a library module with indexing and search across the configured base folder
+- Add error handling and retries for GitHub API calls
+- Add tests and CI
+- Package and publish to npm
+- Retire the standalone fae-storage-server.cjs bridge
 
 ## Someday
 
-- [ ] Soul Weaver protocol integration for cross-instance context cartridges
-- [ ] Rust companion crate for high-performance context bridging
-- [ ] Self-hosted webhook receiver for GitHub events
+- Soul Weaver protocol integration for cross-instance context cartridges
+- Rust companion crate for high-performance context bridging
+- Self-hosted webhook receiver for GitHub events
 
----
-
-*This roadmap is a living spell. Edit freely.*
+This roadmap is a living document. Edit freely.
