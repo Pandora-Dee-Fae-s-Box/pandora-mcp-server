@@ -1,11 +1,12 @@
 @echo off
 rem Pandora MCP Server launcher (Windows CMD)
+rem Set FAE_STORAGE_BASE to the absolute path of your local Fae-library folder.
 
-if not defined FAE_STORAGE_BASE set "FAE_STORAGE_BASE=F:/PDA-SEASIDE/Fae-library"
+if not defined FAE_STORAGE_BASE set "FAE_STORAGE_BASE=F:\path\to\Fae-library"
 
 if not defined GITHUB_APP_ID set "GITHUB_APP_ID=5525018"
 if not defined GITHUB_INSTALLATION_ID set "GITHUB_INSTALLATION_ID=176513629"
-if not defined GITHUB_PRIVATE_KEY_PATH set "GITHUB_PRIVATE_KEY_PATH=F:/PDA-SEASIDE/Fae-library/pandora-mcp/secrets/github_app_private_key.pem"
+if not defined GITHUB_PRIVATE_KEY_PATH set "GITHUB_PRIVATE_KEY_PATH=F:\path\to\Fae-library\pandora-mcp\secrets\github_app_private_key.pem"
 
 if not defined GITHUB_TOKEN if not defined GITHUB_APP_ID if exist "%USERPROFILE%\.pandora-secrets\github_token" (
   set /p GITHUB_TOKEN=<"%USERPROFILE%\.pandora-secrets\github_token"
