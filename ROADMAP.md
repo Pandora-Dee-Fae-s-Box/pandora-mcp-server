@@ -15,6 +15,7 @@
 
 - [ ] Restart pandora-mcp supergateway to load the new `web` module
 - [ ] Test `web_search` and `web_extract` via MCP tools
+- [ ] Add Chromium/Playwright browser module for JS sites, logins, downloads, YouTube transcripts
 - [ ] Add Vector/Discord attachment download and filing module
 - [ ] Add a `library` module with indexing and search across `Fae-library`
 - [ ] Add error handling and retries for GitHub API calls
@@ -24,7 +25,6 @@
 
 ## Someday
 
-- [ ] Browser module — headless browser tools with no API keys required
 - [ ] Soul Weaver protocol integration for cross-instance context cartridges
 - [ ] Rust companion crate for high-performance context bridging
 - [ ] Self-hosted webhook receiver for GitHub events
