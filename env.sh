@@ -20,6 +20,10 @@ export GITHUB_PRIVATE_KEY_PATH="${GITHUB_PRIVATE_KEY_PATH:-/path/to/Fae-library/
 # Fae-library storage root (kept outside the repo so secrets stay safe)
 export FAE_STORAGE_BASE="${FAE_STORAGE_BASE:-/path/to/Fae-library}"
 
+# Optional bridges for native attachment download from Vector/Discord
+# export VECTOR_BRIDGE_URL="http://localhost:8003/vector/download"
+# export DISCORD_BRIDGE_URL="http://localhost:8004/discord/download"
+
 echo "Pandora MCP environment loaded."
 echo "Node: $(which node 2>/dev/null || echo 'not found')"
 echo "npm:  $(which npm 2>/dev/null || echo 'not found')"
