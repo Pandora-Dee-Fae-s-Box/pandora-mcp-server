@@ -10,14 +10,16 @@
 - [x] Cross-platform launchers (`run.sh`, `run.bat`, `env.sh`)
 - [x] `.gitignore` to protect secrets
 - [x] Verified write access to `Pandora-Dee-Fae-s-Box/pandora-mcp-server`
+- [x] Pre-commit hook to block secrets and local paths
+- [x] Attachment download module: public URLs + bridge stubs for Vector/Discord
 
 ## Next
 
-- [ ] Restart pandora-mcp supergateway to load the new `web` and updated `github` modules
-- [ ] Test `web_search` and `web_extract` via MCP tools
-- [ ] Test org-level tools once GitHub App permissions are updated
+- [ ] Restart pandora-mcp supergateway to load the new `attachments` module
+- [ ] Test `download_url` via MCP tools
+- [ ] Build or wire the Vector bridge endpoint (`VECTOR_BRIDGE_URL`) for native attachment download
+- [ ] Build or wire the Discord bridge endpoint (`DISCORD_BRIDGE_URL`) for native attachment download
 - [ ] Add Chromium/Playwright browser module for JS sites, logins, downloads, YouTube transcripts
-- [ ] Add Vector/Discord attachment download and filing module
 - [ ] Add a `library` module with indexing and search across `Fae-library`
 - [ ] Add error handling and retries for GitHub API calls
 - [ ] Add tests and CI
