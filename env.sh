@@ -21,8 +21,10 @@ export GITHUB_PRIVATE_KEY_PATH="${GITHUB_PRIVATE_KEY_PATH:-/path/to/Fae-library/
 export FAE_STORAGE_BASE="${FAE_STORAGE_BASE:-/path/to/Fae-library}"
 
 # Optional bridges for native attachment download from Vector/Discord
-# export VECTOR_BRIDGE_URL="http://localhost:8003/vector/download"
-# export DISCORD_BRIDGE_URL="http://localhost:8004/discord/download"
+# Set these to the MCP endpoint of the Jade Vector / Jade Discord bridge.
+# export VECTOR_BRIDGE_URL="http://localhost:8787/mcp"
+# export DISCORD_BRIDGE_URL="http://localhost:8788/mcp"
+# export BRIDGE_TOKEN="your-bridge-token-here"
 
 echo "Pandora MCP environment loaded."
 echo "Node: $(which node 2>/dev/null || echo 'not found')"
