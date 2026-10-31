@@ -3,20 +3,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const FAE_BASE = process.env.FAE_STORAGE_BASE || './Fae-library';
 const VECTOR_BRIDGE_URL = process.env.VECTOR_BRIDGE_URL || null;
 const DISCORD_BRIDGE_URL = process.env.DISCORD_BRIDGE_URL || null;
 const BRIDGE_TOKEN = process.env.BRIDGE_TOKEN || process.env.JADE_BRIDGE_TOKEN || null;
 
-function safePath(p) {
-  const normalized = path.normalize(p || '.').replace(/^(\.\.(\/|\\|$))+/, '');
-  const full = path.resolve(path.join(FAE_BASE, normalized));
-  const baseResolved = path.resolve(FAE_BASE);
-  if (!full.toLowerCase().startsWith(baseResolved.toLowerCase())) {
-    throw new Error('Path outside allowed folder');
-  }
-  return full;
-}
+// paths inside the Fae-library (full ones handed back work too), and forward slashes on the way out
+const { safePath, shown } = require('../lib/paths.js');
 
 function fetchUrl(url) {
   return new Promise((resolve, reject) => {
@@ -98,7 +90,7 @@ function saveAttachment(data, saveTo, originalType) {
   const target = safePath(saveTo);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, data);
-  return { path: target, size: data.length, type: originalType };
+  return { path: shown(target), size: data.length, type: originalType };
 }
 
 const tools = [

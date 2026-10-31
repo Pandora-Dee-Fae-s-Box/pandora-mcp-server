@@ -18,5 +18,6 @@ yarn-error.log*
 Thumbs.db
 
 
-# IDE.vscode/
+# IDE
+.vscode/
 .idea/

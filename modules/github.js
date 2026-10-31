@@ -110,6 +110,57 @@ async function githubRequest(path, method = 'GET', body = null, authOverride = n
   });
 }
 
+// Text from the API that may come by redirect: Actions logs answer 302 with a short-lived storage address that
+// carries its own signature. That address is fetched WITHOUT the GitHub token (sending it there is refused, and
+// it shouldn't leave GitHub anyway). https.request doesn't follow redirects by itself, so this does.
+async function githubText(path) {
+  const auth = await getAuthHeader();
+  const first = await rawGet({ hostname: API_BASE, path, headers: { 'User-Agent': 'pandora-mcp-server', 'Authorization': auth, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+  if (first.status >= 300 && first.status < 400 && first.location) {
+    let url = new URL(first.location);
+    for (let hop = 0; hop < 5; hop++) {
+      const r = await rawGet({ hostname: url.hostname, path: url.pathname + url.search, headers: { 'User-Agent': 'pandora-mcp-server' } });
+      if (r.status >= 300 && r.status < 400 && r.location) { url = new URL(r.location, url); continue; }
+      if (r.status !== 200) throw new Error(`The log storage answered ${r.status}: ${r.body.slice(0, 300)}`);
+      return r.body;
+    }
+    throw new Error('Too many redirects for the log.');
+  }
+  if (first.status === 410) throw new Error('GitHub no longer keeps that log (logs expire after the repository\'s retention period).');
+  if (first.status !== 200) throw new Error(`GitHub answered ${first.status}: ${first.body.slice(0, 300)}`);
+  return first.body;
+}
+
+function rawGet({ hostname, path, headers }) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({ hostname, port: 443, path, method: 'GET', headers }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, location: res.headers.location, body: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('error', reject);
+    req.setTimeout(60000, () => req.destroy(new Error('The log took too long to arrive.')));
+    req.end();
+  });
+}
+
+/** A log made readable: no timestamps, and only what was asked for (the end, or matches with a little context). */
+function trimLog(text, { tail = 150, grep = '', context = 3 } = {}) {
+  const lines = text.split(/\r?\n/).map((l) => l.replace(/^\d{4}-\d\d-\d\dT[\d:.]+Z /, ''));
+  if (grep) {
+    let re;
+    try { re = new RegExp(grep, 'i'); } catch { re = new RegExp(grep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); }
+    const keep = new Set();
+    lines.forEach((l, i) => { if (re.test(l)) for (let k = Math.max(0, i - context); k <= Math.min(lines.length - 1, i + context); k++) keep.add(k); });
+    const out = [];
+    let last = -2;
+    for (const i of [...keep].sort((a, b) => a - b)) { if (i !== last + 1) out.push('…'); out.push(lines[i]); last = i; }
+    return { total_lines: lines.length, shown: out.length, text: out.join('\n') };
+  }
+  const n = Math.max(1, Math.min(2000, Number(tail) || 150));
+  return { total_lines: lines.length, shown: Math.min(n, lines.length), text: lines.slice(-n).join('\n') };
+}
+
 function parseRepo(repo) {
   const parts = repo.split('/');
   if (parts.length !== 2) throw new Error('repo must be owner/name');
@@ -188,6 +239,21 @@ const tools = [
         branch: { type: 'string', description: 'branch to commit to, default main' }
       },
       required: ['repo', 'path', 'content', 'message']
+    }
+  },
+  {
+    name: 'github_write_file_base64',
+    description: 'Create or update a file in a GitHub repository using base64-encoded content. Use when content contains \\, &, $, /, or backticks that may be mangled by the transport.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        path: { type: 'string' },
+        content_base64: { type: 'string', description: 'base64-encoded UTF-8 file content' },
+        message: { type: 'string', description: 'commit message' },
+        branch: { type: 'string', description: 'branch to commit to, default main' }
+      },
+      required: ['repo', 'path', 'content_base64', 'message']
     }
   },
   {
@@ -415,6 +481,34 @@ const tools = [
     }
   },
 
+  {
+    name: 'github_list_run_jobs',
+    description: 'List the jobs of one workflow run, with each job\'s id and which of its steps failed. Use the job id with github_get_job_log.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        run_id: { type: 'number', description: 'from github_list_workflow_runs' }
+      },
+      required: ['repo', 'run_id']
+    }
+  },
+  {
+    name: 'github_get_job_log',
+    description: 'Read the log of one Actions job (follows GitHub\'s redirect to the log storage). Returns the last lines by default; give grep (text or regex, e.g. "error|failed|MISSING") to get only matching lines with a little context.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'owner/name' },
+        job_id: { type: 'number', description: 'from github_list_run_jobs' },
+        tail: { type: 'number', description: 'how many lines from the end, default 150, at most 2000' },
+        grep: { type: 'string', description: 'only lines matching this (case-insensitive), with context' },
+        context: { type: 'number', description: 'lines of context around each match, default 3' }
+      },
+      required: ['repo', 'job_id']
+    }
+  },
+
   // Security
   {
     name: 'github_list_dependabot_alerts',
@@ -496,6 +590,20 @@ const handlers = {
     const body = {
       message: args.message,
       content: Buffer.from(args.content, 'utf8').toString('base64'),
+      branch
+    };
+    if (sha) body.sha = sha;
+    const res = await githubRequest(`/repos/${owner}/${name}/contents/${encodeURIComponent(args.path)}`, 'PUT', body);
+    if (res.status !== 200 && res.status !== 201) throw new Error(JSON.stringify(res.body));
+    return { ok: true, commit: res.body.commit?.sha, content: res.body.content?.sha };
+  },
+  async github_write_file_base64(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const branch = args.branch || 'main';
+    const sha = await getFileSha(owner, name, args.path, branch);
+    const body = {
+      message: args.message,
+      content: args.content_base64,
       branch
     };
     if (sha) body.sha = sha;
@@ -690,6 +798,25 @@ const handlers = {
     const res = await githubRequest(path);
     if (res.status !== 200) throw new Error(JSON.stringify(res.body));
     return res.body.workflow_runs.map(r => ({ id: r.id, name: r.name, status: r.status, conclusion: r.conclusion, branch: r.head_branch, url: r.html_url }));
+  },
+
+  async github_list_run_jobs(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const res = await githubRequest(`/repos/${owner}/${name}/actions/runs/${Number(args.run_id)}/jobs?per_page=100`);
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+    return res.body.jobs.map(j => ({
+      id: j.id,
+      name: j.name,
+      status: j.status,
+      conclusion: j.conclusion,
+      failed_steps: (j.steps || []).filter(st => st.conclusion === 'failure').map(st => st.name),
+      url: j.html_url
+    }));
+  },
+  async github_get_job_log(args) {
+    const { owner, name } = parseRepo(args.repo);
+    const text = await githubText(`/repos/${owner}/${name}/actions/jobs/${Number(args.job_id)}/logs`);
+    return { job_id: Number(args.job_id), ...trimLog(text, args) };
   },
 
   // Security

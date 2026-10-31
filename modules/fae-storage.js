@@ -1,19 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-
-// Configurable base path so the repo stays generic.
-// Set FAE_STORAGE_BASE to the absolute path of your local vault folder.
-const BASE = process.env.FAE_STORAGE_BASE || './Fae-library';
-
-function safePath(p) {
-  const normalized = path.normalize(p || '.').replace(/^(\.\.(\/|\\|$))+/, '');
-  const full = path.resolve(path.join(BASE, normalized));
-  const baseResolved = path.resolve(BASE);
-  if (!full.toLowerCase().startsWith(baseResolved.toLowerCase())) {
-    throw new Error('Path outside allowed folder');
-  }
-  return full;
-}
+// paths inside the Fae-library (full ones handed back work too), and forward slashes on the way out
+const { safePath, shown, relative } = require('../lib/paths.js');
 
 function safePathPair(src, dst) {
   return [safePath(src), safePath(dst)];
@@ -213,23 +201,23 @@ const handlers = {
     const target = safePath(args.path);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, args.content, 'utf8');
-    return { ok: true, path: target };
+    return { ok: true, path: shown(target) };
   },
   async fae_write_binary_file(args) {
     const target = safePath(args.path);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, Buffer.from(args.content, 'base64'));
-    return { ok: true, path: target };
+    return { ok: true, path: shown(target) };
   },
   async fae_read_text_file(args) {
     const target = safePath(args.path);
     const content = fs.readFileSync(target, 'utf8');
-    return { ok: true, path: target, content };
+    return { ok: true, path: shown(target), content };
   },
   async fae_read_binary_file(args) {
     const target = safePath(args.path);
     const content = fs.readFileSync(target);
-    return { ok: true, path: target, content: content.toString('base64') };
+    return { ok: true, path: shown(target), content: content.toString('base64') };
   },
   async fae_list_files(args) {
     const dir = safePath(args.dir || '.');
@@ -255,17 +243,17 @@ const handlers = {
   async fae_create_directory(args) {
     const target = safePath(args.path);
     fs.mkdirSync(target, { recursive: true });
-    return { ok: true, path: target };
+    return { ok: true, path: shown(target) };
   },
   async fae_directory_tree(args) {
     const dir = safePath(args.dir || '.');
-    return { path: dir, tree: directoryTree(dir) };
+    return { path: shown(dir), tree: directoryTree(dir) };
   },
   async fae_get_file_info(args) {
     const target = safePath(args.path);
     const info = fs.statSync(target);
     return {
-      path: target,
+      path: shown(target),
       size: info.size,
       isDirectory: info.isDirectory(),
       isFile: info.isFile(),
@@ -284,24 +272,24 @@ const handlers = {
       content = content.replace(edit.oldText, edit.newText);
     }
     fs.writeFileSync(target, content, 'utf8');
-    return { ok: true, path: target };
+    return { ok: true, path: shown(target) };
   },
   async fae_move_file(args) {
     const [src, dst] = safePathPair(args.source, args.destination);
     fs.mkdirSync(path.dirname(dst), { recursive: true });
     fs.renameSync(src, dst);
-    return { ok: true, source: src, destination: dst };
+    return { ok: true, source: shown(src), destination: shown(dst) };
   },
   async fae_search_files(args) {
     const dir = safePath(args.path || '.');
-    return { path: dir, pattern: args.pattern, matches: searchFiles(dir, args.pattern) };
+    return { path: shown(dir), pattern: args.pattern, matches: searchFiles(dir, args.pattern) };
   },
   async fae_read_multiple_files(args) {
     const results = [];
     for (const p of args.paths || []) {
       const target = safePath(p);
       const content = fs.readFileSync(target, 'utf8');
-      results.push({ path: target, content });
+      results.push({ path: shown(target), content });
     }
     return results;
   }
