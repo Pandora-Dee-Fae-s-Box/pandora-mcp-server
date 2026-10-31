@@ -2,12 +2,14 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const FAE_BASE = process.env.FAE_STORAGE_BASE || './Fae-library';
+// the Fae-library, whichever way FAE_STORAGE_BASE is spelled (Git Bash "/f/..." included)
+const { BASE: FAE_BASE } = require('../lib/paths.js');
 
 function loadKey(name) {
   const keyringPath = path.join(FAE_BASE, 'secrets', 'API-keys.md');
   const candidates = [
     keyringPath,
+    path.join(__dirname, '..', 'secrets', 'API-keys.md'),
     process.env.HOME ? path.join(process.env.HOME, '.pandora-secrets', name) : null,
     process.env.USERPROFILE ? path.join(process.env.USERPROFILE, '.pandora-secrets', name) : null,
     path.join('./secrets', name)
@@ -20,8 +22,11 @@ function loadKey(name) {
         // Try to extract a key from a label like "Tavily:" or "TAVILY_API_KEY="
         const sameLine = content.match(new RegExp(`${name.replace(/[-_]/g, '[-_]')}[:=]\\s*([A-Za-z0-9_\\-]+)`, 'i'));
         if (sameLine) return sameLine[1];
-        const genericLine = content.match(/[:=]\s*([A-Za-z0-9_\-]{20,})/);
-        if (genericLine) return genericLine[1];
+        // otherwise only a value on a line that names the service ("Tavily: tvly-…"), never just the first long
+        // value in the file, which could be another service's key
+        const service = name.split(/[-_]/)[0];
+        const named = content.split(/\r?\n/).find((l) => new RegExp(service, 'i').test(l) && /[:=]\s*[A-Za-z0-9_\-]{20,}/.test(l));
+        if (named) return named.match(/[:=]\s*([A-Za-z0-9_\-]{20,})/)[1];
         const trimmed = content.trim();
         if (/^[A-Za-z0-9_\-]+$/.test(trimmed)) return trimmed;
       }
