@@ -14,7 +14,7 @@ Authentication uses a GitHub App installed on an organization, plus a local priv
 
 ## Running it
 
-From the server directory, run source ./env.sh then bash ./run.sh on Git Bash/Linux/macOS, or run.bat on Windows CMD.
+First copy env.example.sh to env.sh and fill in your values (env.sh is git-ignored, so your values stay local). Then, from the server directory, run bash ./run.sh on Git Bash/Linux/macOS (it loads env.sh itself), or run.bat on Windows CMD.
 
 The server listens on http://localhost:8002/mcp by default.
 
@@ -27,6 +27,17 @@ Set these environment variables before running: GITHUB_APP_ID, GITHUB_INSTALLATI
 - modules/github.js: GitHub REST API tools with GitHub App + PAT auth
 - modules/fae-storage.js: local filesystem tools for a configured vault folder
 - modules/web.js: Tavily search and URL extraction
+
+## Mode Shrine
+
+A small companion server in mode-shrine/ that holds one shared emoji mode (snack, forge, nocturne, manderville, shield) and its tone, so every connected surface can read and set the same mood. Tools: mode_get, mode_set, mode_list. The current mode is kept in mode-shrine/mode-state.json (git-ignored).
+
+Run mode-shrine/run.bat (Windows CMD) or bash mode-shrine/run.sh. It serves http://localhost:8000/mcp over streamable HTTP with CORS on, so browser pages can call it.
+
+- With no key file it listens on this machine only (127.0.0.1).
+- To reach it from other devices, put one or more keys (one per line) in secrets/mode-shrine.key. The launcher then listens on the network and every request must send one of them as a bearer token (Authorization: Bearer <key>). Browser preflight requests still pass, so CORS keeps working.
+
+mode-shrine/mcp.json describes it for clients that launch servers over stdio; its path is relative to this repository's root. mode-shrine/server.js is the older plain-HTTP version (GET/POST /mode, GET /modes on 127.0.0.1:9393), kept for surfaces that use it.
 
 ## Security
 

@@ -1,0 +1,26 @@
+{
+  "name": "mode-shrine",
+  "command": "node",
+  "args": ["mode-shrine/mode-shrine-server.cjs"],
+  "transport": "stdio",
+  "tools": [
+    {
+      "name": "mode_get",
+      "description": "Get the current emoji mode and tone from the mode shrine.",
+      "parameters": {}
+    },
+    {
+      "name": "mode_set",
+      "description": "Set the active emoji mode for all connected surfaces.",
+      "parameters": {
+        "mode": "string",
+        "set_by": "string"
+      }
+    },
+    {
+      "name": "mode_list",
+      "description": "List available emoji modes.",
+      "parameters": {}
+    }
+  ]
+}
